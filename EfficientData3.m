@@ -2,59 +2,23 @@ clc;
 clear all;
 close all;
 
- sigmoidLayer
-
-%%
-tic;
-
-% matlabroot = 'LAGDatabase'
-% Datasetpath = fullfile(matlabroot)
-% Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
-% 
-% %Split the images from Data in the ratio 80:20 
-% [Data_G80, Data_G20] = splitEachLabel(Data,0.7,'Include','glaucoma')
-% [Data_N80, Data_N20] = splitEachLabel(Data,0.7,'Include','normal')
+ matlabroot = 'LAGDatabase'
+ Datasetpath = fullfile(matlabroot)
+ Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
+ 
+%Split the images from Data in the ratio 80:20 
+[Data_G80, Data_G20] = splitEachLabel(Data,0.7,'Include','glaucoma')
+[Data_N80, Data_N20] = splitEachLabel(Data,0.7,'Include','normal')
 % 
 % % Final Training set
-% FinalTrain = imageDatastore(cat(1,Data_G80.Files,Data_N80.Files))
-% FinalTrain.Labels = cat(1,Data_G80.Labels,Data_N80.Labels)
+ FinalTrain = imageDatastore(cat(1,Data_G80.Files,Data_N80.Files))
+ FinalTrain.Labels = cat(1,Data_G80.Labels,Data_N80.Labels)
 % % 
 % % % Final Testing set
-% FinalTest = imageDatastore(cat(1,Data_G20.Files,Data_N20.Files));
-% FinalTest.Labels = cat(1,Data_G20.Labels,Data_N20.Labels)
-
-%%
-% Dataset 3
-
-matlabroot = 'Dataset_3Ori'
-Datasetpath = fullfile(matlabroot)
-Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
+ FinalTest = imageDatastore(cat(1,Data_G20.Files,Data_N20.Files));
+ FinalTest.Labels = cat(1,Data_G20.Labels,Data_N20.Labels)
 
 
-%Split the glaucoma images from Data in the ratio 70:30 and normal images also 
-[Data_GA7, Data_GA3] = splitEachLabel(Data,0.7,'Include','glaucoma_A1')
-[Data_GE7, Data_GE3] = splitEachLabel(Data,0.7,'Include','glaucoma_E1')
-[Data_N7, Data_N3] = splitEachLabel(Data,0.7,'Include','normal1')
-% 
-
-%Final Training set
-FinalTrain = imageDatastore(cat(1,Data_GA7.Files,Data_GE7.Files,Data_N7.Files))
-FinalTrain.Labels = cat(1,Data_GA7.Labels,Data_GE7.Labels,Data_N7.Labels)
-
-% Final Testing set
-FinalTest = imageDatastore(cat(1,Data_GA3.Files,Data_GE3.Files,Data_N3.Files))
-FinalTest.Labels = cat(1,Data_GA3.Labels,Data_GE3.Labels,Data_N3.Labels)
-
-
-% matlabroot  = 'DrishtiTrainingRotated'
-% Datasetpath = fullfile(matlabroot)
-% FinalTrain  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
-% matlabroot  = 'DrishtiTestingRotated'
-% Datasetpath = fullfile(matlabroot)
-% FinalTest   = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
 % Finding number of images in each category for training
 labelCountTrain = countEachLabel(FinalTrain)
 
@@ -89,7 +53,7 @@ end
 [learnableLayer,classLayer] = findLayersToReplace(lgraph);
 [learnableLayer,classLayer] 
 
-numClasses = 3;
+numClasses = 2;
 
 if isa(learnableLayer,'nnet.cnn.layer.FullyConnectedLayer')
     newLearnableLayer = fullyConnectedLayer(numClasses, ...
@@ -120,14 +84,12 @@ options = trainingOptions('adam', ...
     'InitialLearnRate',1e-4,'Shuffle','every-epoch');
 
 MyNet = trainNetwork(augimdsTrain,lgraph,options);
-save('EfficientNetDataset3(Ori).mat')
+save('EfficientNet.mat')
  toc;
  
-  %%
+  %% Program for Testing
   tic;
-load('Resnet18Rimone3.mat')
-%MyNet = net;
-% 
+
 % % Classification validation
 %[YPred,scores] = classify(MyNet,augimdsTest);
 [YPred,scores] = classify(MyNet,augimdsTest);
@@ -178,7 +140,7 @@ toc;
 
 % Extract the features from fc7 layer
 layer = 'efficientnet-b0|model|head|global_average_pooling2d|GlobAvgPool'
-%layer = 'pool5-drop_7x7_s1';
+
 featuresTrainR = activations(MyNet,augimdsTrain,layer,'OutputAs','rows');
 featuresTestR = activations(MyNet,augimdsTest,layer,'OutputAs','rows');
 
