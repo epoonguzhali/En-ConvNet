@@ -4,33 +4,14 @@ close all;
 
 
 tic;
+
+matlabroot = 'D:\poonguzhali\pre-trianed'
+Datasetpath = fullfile(matlabroot,'DrishtiTrainingRotated')
+FinalTrain  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
 % 
-matlabroot = 'Dataset_3'
-Datasetpath = fullfile(matlabroot)
-Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-
-
-%Split the glaucoma images from Data in the ratio 70:30 and normal images also 
-[Data_GA7, Data_GA3] = splitEachLabel(Data,0.7,'Include','glaucoma_A1')
-[Data_GE7, Data_GE3] = splitEachLabel(Data,0.7,'Include','glaucoma_E1')
-[Data_N7, Data_N3] = splitEachLabel(Data,0.7,'Include','normal1')
-% 
-
-%Final Training set
-FinalTrain = imageDatastore(cat(1,Data_GA7.Files,Data_GE7.Files,Data_N7.Files))
-FinalTrain.Labels = cat(1,Data_GA7.Labels,Data_GE7.Labels,Data_N7.Labels)
-
-% Final Testing set
-FinalTest = imageDatastore(cat(1,Data_GA3.Files,Data_GE3.Files,Data_N3.Files))
-FinalTest.Labels = cat(1,Data_GA3.Labels,Data_GE3.Labels,Data_N3.Labels)
-
-% matlabroot = 'D:\poonguzhali\pre-trianed'
-% Datasetpath = fullfile(matlabroot,'DrishtiTrainingRotated')
-% FinalTrain  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
-% matlabroot = 'D:\poonguzhali\pre-trianed'
-% Datasetpath = fullfile(matlabroot,'DrishtiTestingRotated')
-% FinalTest  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
+matlabroot = 'D:\poonguzhali\pre-trianed'
+Datasetpath = fullfile(matlabroot,'DrishtiTestingRotated')
+FinalTest  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
 
 
 % Finding number of images in each category for training
@@ -65,7 +46,7 @@ end
 [learnableLayer,classLayer] = findLayersToReplace(lgraph);
 [learnableLayer,classLayer] 
 
-numClasses = 3;
+numClasses = 2;
 
 if isa(learnableLayer,'nnet.cnn.layer.FullyConnectedLayer')
     newLearnableLayer = fullyConnectedLayer(numClasses, ...
@@ -96,13 +77,12 @@ options = trainingOptions('adam', ...
     'InitialLearnRate',1e-4,'Shuffle','every-epoch');
 
 MyNet = trainNetwork(augimdsTrain,lgraph,options);
-save('Inceptionv3Dataset3.mat')
+save('Inceptionv3Data.mat')
  toc;
  
-  %%
+  %% Program for Testing
   tic;
-%load('XceptionRimoneRmsProp.mat')
-% 
+
 % % Classification validation
 [YPred,scores] = classify(MyNet,augimdsTest);
 
@@ -146,9 +126,7 @@ colormap jet
 %%
 % Extract the features from fc7 layer
 layer = 'avg_pool'
-%layer = 'add_10'
 
-%layer = 'pool5-drop_7x7_s1';
 featuresTrainR = activations(MyNet,augimdsTrain,layer,'OutputAs','rows');
 featuresTestR = activations(MyNet,augimdsTest,layer,'OutputAs','rows');
 
