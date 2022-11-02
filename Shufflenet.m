@@ -2,49 +2,6 @@ clc;
 clear all;
 close all;
 
-% sigmoidLayer
-
-%%
-tic;
-
-% matlabroot = 'LAGDatabaseRot'
-% Datasetpath = fullfile(matlabroot)
-% Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
-% 
-% %Split the images from Data in the ratio 80:20 
-% [Data_G80, Data_G20] = splitEachLabel(Data,0.7,'Include','glaucoma')
-% [Data_N80, Data_N20] = splitEachLabel(Data,0.7,'Include','normal')
-% 
-% % Final Training set
-% FinalTrain = imageDatastore(cat(1,Data_G80.Files,Data_N80.Files))
-% FinalTrain.Labels = cat(1,Data_G80.Labels,Data_N80.Labels)
-% % 
-% % % Final Testing set
-% FinalTest = imageDatastore(cat(1,Data_G20.Files,Data_N20.Files));
-% FinalTest.Labels = cat(1,Data_G20.Labels,Data_N20.Labels)
-
-% matlabroot = 'Dataset_3Enc'
-% Datasetpath = fullfile(matlabroot)
-% Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
-% 
-% 
-% %Split the glaucoma images from Data in the ratio 70:30 and normal images also 
-% [Data_GA7, Data_GA3] = splitEachLabel(Data,0.7,'Include','glaucoma_A1')
-% [Data_GE7, Data_GE3] = splitEachLabel(Data,0.7,'Include','glaucoma_E1')
-% [Data_N7, Data_N3] = splitEachLabel(Data,0.7,'Include','normal1')
-% % 
-% 
-% %Final Training set
-% FinalTrain = imageDatastore(cat(1,Data_GA7.Files,Data_GE7.Files,Data_N7.Files))
-% FinalTrain.Labels = cat(1,Data_GA7.Labels,Data_GE7.Labels,Data_N7.Labels)
-% 
-% % Final Testing set
-% FinalTest = imageDatastore(cat(1,Data_GA3.Files,Data_GE3.Files,Data_N3.Files))
-% FinalTest.Labels = cat(1,Data_GA3.Labels,Data_GE3.Labels,Data_N3.Labels)
-
-
-%tic;
 
 matlabroot  = 'DrishtiTraining'
 Datasetpath = fullfile(matlabroot)
@@ -71,11 +28,10 @@ augimdsTrain = augmentedImageDatastore(inputSize(1:2),FinalTrain);
 
 % Load the pre-trained network
 
-%net = efficientnetb0;
-% 
+
 net = shufflenet;
-%net = nasnetmobile;
-%analyzeNetwork(net)
+
+analyzeNetwork(net)
 
 %net.Layers(1)
 
@@ -121,16 +77,14 @@ options = trainingOptions('adam', ...
     'InitialLearnRate',1e-4,'Shuffle','every-epoch');
 
 MyNet = trainNetwork(augimdsTrain,lgraph,options);
-save('ShuffleDrishtiBalan_new.mat')
+save('ShuffleDrishti.mat')
  toc;
  
-  %%
+  %% Program for Testing
   tic;
-%load('ShuffleDataset3Enc.mat')
-%MyNet = net;
-% 
+
 % % Classification validation
-%[YPred,scores] = classify(MyNet,augimdsTest);
+
 [YPred,scores] = classify(MyNet,augimdsTest);
 
 %Accuracy calculation
@@ -144,16 +98,10 @@ toc;
 
 xlswrite('ShuffleLAGRot',scores,1);
 writematrix(YPred,'ShuffleLAGRot.txt','Delimiter','tab')
-%%
-writematrix(YPred,'EfficientDataset3RmsPRop_YPred.txt','Delimiter','tab')
-writematrix(scores,'EfficientDataset3RmsProp_scores.txt','Delimiter','tab')
-
-%%
 
 
 % Grad cam visualizati0
 Img1 = readimage(FinalTest,20);
-%Img1 = imresize(Img1,[64,64]);
 Img1 = imresize(Img1,[224,224]);
 figure(1),imshow(Img1)
 
@@ -173,298 +121,3 @@ colormap jet
 %%
 
 
-writematrix(YPred,'YPredRimoneDLEp5.txt','Delimiter','tab')
-writematrix(scores,'scoresRimoneDLEp5.txt','Delimiter','tab')
-% 
-toc;
-%%  
-
-% Extract the features from fc7 layer
-%layer = 'efficientnet-b0|model|head|global_average_pooling2d|GlobAvgPool'
-%layer = 'pool5-drop_7x7_s1';
-layer = 'node_198';
-featuresTrainR = activations(MyNet,augimdsTrain,layer,'OutputAs','rows');
-featuresTestR = activations(MyNet,augimdsTest,layer,'OutputAs','rows');
-
- YTrain = FinalTrain.Labels;
- YTest = FinalTest.Labels;
- 
- % Classifiaction using SVM classifier
-%Create a template for SVM classfier and use Gaussian kernel funcion
-  %
-  tic;
- 
- mdl = fitcecoc(featuresTrainR,YTrain);
- 
- [YPred1,scores1] = predict(mdl,featuresTestR);
- 
- accuracy = mean(YPred1 ==YTest);
- 
- figure, plotconfusion(YTest,YPred1)
-
- xlswrite('ShuffleLAGRot',scores1,2);
- %%
- writematrix(YPred1,'YPredRimoneDLEp5SVMSVM.txt','Delimiter','tab')
-writematrix(scores1,'scoresRimoneDLEp5.txt','Delimiter','tab')
- 
- %t = templateSVM('KernelFunction','rbf') 
-%mdl = fitcecoc(featuresTrainR,YTrain,'Learners',t);
- toc;
- 
- % KNN CLassifier
- %%
- tic;
- 
- md2 =  fitcknn(featuresTrainR,YTrain);
- 
- [YPred2,scores2] = predict(md2,featuresTestR);
- 
- accuracy = mean(YPred2 ==YTest);
- 
- figure, plotconfusion(YTest,YPred2)
- 
- toc;
-  xlswrite('ShuffleLAGRot',scores2,3);
-  %%
- writematrix(YPred2,'YPredRimoneDLEp5KNN.txt','Delimiter','tab')
-writematrix(scores2,'scoresRImoneDLEp5KNN.txt','Delimiter','tab')
-% Naive Bayes CLassifier
- tic;
- 
- md3 =  fitcnb(featuresTrainR,YTrain);
- 
- [YPred3,scores3] = predict(md3,featuresTestR);
- 
- accuracy = mean(YPred3 ==YTest);
- 
- figure, plotconfusion(YTest,YPred3)
- 
- toc;
- writematrix(YPred3,'YPredRimoneDLEp5NB.txt','Delimiter','tab')
-writematrix(scores3,'scoresRimoneDLEp5NB.txt','Delimiter','tab')
- 
- % Decision tree
- tic;
- 
- mdl =  fitctree(featuresTrainR,YTrain);
- 
- YPred = predict(mdl,featuresTestR);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(1), plotconfusion(YTest,YPred)
- 
- toc;
- 
-%%
-% % % Extract the features from fc7 layer
-layer = 'fc1';
-featuresTrainR = activations(netTransfer,augimdsTrain,layer,'OutputAs','rows');
-featuresTestR = activations(netTransfer,augimdsTest,layer,'OutputAs','rows');
-% 
-
- YTrain = FinalTrain.Labels;
- YTest = FinalTest.Labels;
- 
- % Classifiaction using SVM classifier
- 
- mdl = fitcecoc(featuresTrainR,YTrain);
- 
- YPred = predict(mdl,featuresTestR);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(1), plotconfusion(YTest,YPred)
- 
-  % KNN CLassifier
- tic;
- 
- mdl1 =  fitcknn(featuresTrainR,YTrain);
- 
- YPred = predict(mdl1,featuresTestR);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(1), plotconfusion(YTest,YPred)
- 
- toc;
- 
-% Naive Bayes CLassifier
- tic;
- 
- mdl =  fitcnb(featuresTrainR,YTrain);
- 
- YPred = predict(mdl,featuresTestR);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(1), plotconfusion(YTest,YPred)
- 
- toc;
-
-  % Decision tree
- tic;
- 
- mdl =  fitctree(featuresTrainR,YTrain);
- 
- YPred = predict(mdl,featuresTestR);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(1), plotconfusion(YTest,YPred)
- 
- toc;
-
- % Applying Wavelet transform on Extracted Features
- %%
- WaveletTrain = [];
- WaveletTest = [];
- 
- [m,n] = size(featuresTrainR);
- 
- [m1,n1] = size(featuresTestR);
- 
- for i = 1:m
-     Xtrain = featuresTrainR;
-       
-     % ID wavelet
-     [CA1, CD1] = dwt(Xtrain(i,:),'haar');
-     WaveletTrain(i,:) = CA1;
-     
-     % Fast walsh hadamard transform
-    %FastTrain(i,:) = fwht(Xtrain(i,:));   
-     
-     % DCT
-     %dcTrain(i,:) = dct(Xtrain(i,:));
-     
- end
-     
- for i = 1:m1
-
-     Xtest = featuresTestR;
-       % 1D DWT 
-    [CA2, CD2] = dwt(Xtest(i,:),'haar');
-     WaveletTest(i,:) = CA2;
-     
-      % Fast walsh hadamard transform
-    %FastTest(i,:) = fwht(Xtest(i,:));   
-     
-     % DCT
-     %dcTest(i,:) = dct(Xtest(i,:));
-     
- 
- end
-%  
-% %  % Classification using SVM classifier
-% %  
- YTrain = FinalTrain.Labels;
- YTest = FinalTest.Labels;
- 
- % Classifiaction using SVM classifier
- 
- mdl = fitcecoc(WaveletTrain,YTrain);
- 
- YPred = predict(mdl,WaveletTest);
- 
- accuracy = mean(YPred ==YTest);
- 
- figure(2), plotconfusion(YTest,YPred)
-
-
-  xlswrite('ShuffleLAGRot',scores2,4);
-  %%
- 
-  % Classifiaction using KNN classifier
- 
- md2 = fitcknn(WaveletTrain,YTrain);
- 
- YPred2 = predict(md2,WaveletTest);
- 
- accuracy = mean(YPred2 ==YTest);
- 
- figure(3), plotconfusion(YTest,YPred2)
- %xlswrite('ShuffleLAGRot',scores2,4);
-%  
-% 
-%%
-% %Classification using LSTM network
-% tic;
-% 
-% layer = 'fc7';
-% featuresTrain = activations(alex,augimdsTrain,layer,'OutputAs','rows');
-% featuresTest = activations(alex,augimdsTest,layer,'OutputAs','rows');
-% 
-columnSamples = false; % samples are  by columns.
-cellTime = false;     % time-steps in matrix, not cell array.
-[TrainData,wasMatrix] = tonndata(featuresTrainR,columnSamples,cellTime)
-%x2 = fromnndata(y,wasMatrix,columnSamples,cellTime)
-
-NewTrain = TrainData';
-
-columnSamples = false; % samples are by columns.
-cellTime = false;     % time-steps in matrix, not cell array.
-[TestData,wasMatrix] = tonndata(featuresTestR,columnSamples,cellTime)
-%x12 = fromnndata(y1,wasMatrix,columnSamples,cellTime)
-
-NewTest = TestData';
-% 
-
-
-
-columnSamples = false; % samples are  by columns.
-cellTime = false;     % time-steps in matrix, not cell array.
-[TrainDataWav,wasMatrix] = tonndata(WaveletTrain,columnSamples,cellTime)
-%x2 = fromnndata(y,wasMatrix,columnSamples,cellTime)
-
-NewTrainWav = TrainDataWav';
-
-columnSamples = false; % samples are by columns.
-cellTime = false;     % time-steps in matrix, not cell array.
-[TestDataWav,wasMatrix] = tonndata(WaveletTest,columnSamples,cellTime)
-%x12 = fromnndata(y1,wasMatrix,columnSamples,cellTime)
-
-NewTestWav = TestDataWav';
- YTrain = FinalTrain.Labels;
- YTest = FinalTest.Labels;
-
-%  
-numFeatures = 640 ;
-numHiddenUnits = 100;
-
-numClasses = 3;
-layers = [sequenceInputLayer(numFeatures)
-          %lstmLayer(numHiddenUnits,'OutputMode','last','InputWeightsInitializer','he')
-          bilstmLayer(numHiddenUnits,'OutputMode','last','InputWeightsInitializer','he')
-          fullyConnectedLayer(numClasses)
-          softmaxLayer
-          classificationLayer];
-
-% Specify the training options
-
-options = trainingOptions('adam', ...
-    'MiniBatchSize',32, ...
-    'GradientThreshold',2, ...
-        'MaxEpochs',20, ...   
-    'InitialLearnRate',1e-4,'Shuffle','every-epoch');
-
-% Trian the LSTM network 'GradientThreshold 0.001
-
- MyNetLSTM = trainNetwork(NewTrainWav,YTrain,layers,options);
-save('ClassifiactionLSTM.mat')
-%%
-
-
-tic;
-load('ClassifiactionLSTM.mat')
-
-% Classification validation
-[YPredLSTM,scoresLSTM] = classify(MyNetLSTM,NewTestWav);
-
-%Accuracy calculation
-YValidation = FinalTest.Labels;
-accuracy = mean(YPredLSTM == YValidation)
-
-% Plot confusion matrix
-figure, plotconfusion(YValidation,YPredLSTM)
-
-toc;
