@@ -7,7 +7,6 @@ close all;
 tic;
 
  matlabroot = 'D:\Poonguzhali\pre-trianed\LAGDatabase'
-% matlabroot = 'D:\poonguzhali\CNNPrograms'
 Datasetpath = fullfile(matlabroot)
 Data  = imageDatastore(Datasetpath,'IncludeSubfolders',true,'LabelSource','foldernames')
 
@@ -38,27 +37,8 @@ augimdsTest = augmentedImageDatastore(inputSize(1:2),FinalTest);
 augimdsTrain = augmentedImageDatastore(inputSize(1:2),FinalTrain);
 
       
-% % Load the pre-trained ResNet Architecture 
-%     renet=resnet50;
-%     lgraph = layerGraph(renet);  
-%            
-%     analyzeNetwork(lgraph)
-%     
-% layers = renet.Layers;
-% 
-% % % Transfer the initial layers( first 174 layers)
-% layersTransfer = renet.Layers(1:end-3);
-% 
-% % Defining new Resnet with modified last three layers
-% layers = [
-%     layersTransfer
-%     fullyConnectedLayer(2,'Name','fc1000','WeightLearnRateFactor',20,'BiasLearnRateFactor',20)
-%              softmaxLayer('Name','fc1000_softmax')
-%              classificationLayer('Name','ClassificationLayer_fc1000')]
-%    
-   
-         % Load the pre-trained Resnet50 model
-         % ResNet Architecture 
+% % Load the pre-trained model
+
     net=squeezenet;
     lgraph = layerGraph(net);
      analyzeNetwork(lgraph)
@@ -125,9 +105,9 @@ MyNet = trainNetwork(augimdsTrain,lgraph,options);
 save('SqueezenetLAGAdamEp20.mat')
  toc;
  
- %%
+ %% Program for Testing
   tic;
-load('Resnet3Cellimagesbluepoch5.mat')
+
 % 
 % % Classification validation
 [YPred,scores] = classify(MyNet,augimdsTest);
